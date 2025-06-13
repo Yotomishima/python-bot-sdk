@@ -37,6 +37,24 @@ class WebAPI:
 
     url: str = environ.get("HR_WEBAPI_URL", "https://webapi.highrise.game")
 
+    def __init__(self) -> None:
+        self.session: ClientSession | None = None
+
+    async def _ensure_session(self) -> None:
+        if self.session is None or self.session.closed:
+            self.session = ClientSession()
+
+    async def __aenter__(self) -> "WebAPI":
+        await self._ensure_session()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:
+        await self.aclose()
+
+    async def aclose(self) -> None:
+        if self.session is not None:
+            await self.session.close()
+
     async def get_user(self, user_id: str) -> GetPublicUserResponse:
         """Fetch a single user given its user_id.
 
@@ -252,18 +270,15 @@ class WebAPI:
         return await self.send_request(endpoint, GetPublicGrabsResponse)
 
     async def send_request(self, endpoint: str, cl: Type[Any]) -> Any:
-        """
-        Sends a request to the given endpoint and returns a structured response from webapi models.
+        """Send a request to the given endpoint using the stored session."""
 
-        Raises:
-            ResponseError: If the response status is not 200.
-        """
-        async with ClientSession() as session:
-            async with session.get(f"{self.url}{endpoint}") as response:
-                from . import ResponseError
+        await self._ensure_session()
+        assert self.session is not None
+        async with self.session.get(f"{self.url}{endpoint}") as response:
+            from . import ResponseError
 
-                if response.status == 200:
-                    data = await response.json()
-                    return converter.structure(data, cl)
-                else:
-                    raise ResponseError((await response.read()).decode())
+            if response.status == 200:
+                data = await response.json()
+                return converter.structure(data, cl)
+            else:
+                raise ResponseError((await response.read()).decode())
