@@ -51,8 +51,8 @@ VERSION: Final = pkg_resources.get_distribution(SDK_PACKAGE).version
 @define
 class BotDefinition:
     bot: BaseBot
-    room_id: str
-    api_token: str
+    room_id: 62da35ef61e1adba0b4266db
+    api_token: 4e728ac8ce1d3c0479a90d5482bb9b6ca1b22308249e6c212e1d3b9dd572bca7
 
 
 @command()
